@@ -51,8 +51,8 @@ def run_test(command, parameters, submission_file, timeout=60):
     with Popen([command] + parameters, stdout=PIPE, stderr=PIPE) as process:
         try:
             stdout, stderr = process.communicate(timeout=timeout)
-            stdout = stdout.decode('utf-8')
-            stderr = stderr.decode('utf-8')
+            stdout = stdout.decode('utf-8').replace("#StandWithUkraine", "")
+            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")
         except TimeoutExpired:
             process.kill()
             stdout = None
