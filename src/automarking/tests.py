@@ -4,10 +4,13 @@
 :mod:`automarking.tests` -- Automated Testing Support
 #####################################################
 
-.. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>
+.. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>, Dan Campbell <danielcampbell2097@hotmail.com>
 """
+import json
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE, TimeoutExpired
+
+HTML_VALIDATOR_URL = ["https://teaching.computing.edgehill.ac.uk/validator/html/"]
 
 
 def extract_code(source, start_identifier='// StartStudentCode', end_identifier='// EndStudentCode'):
