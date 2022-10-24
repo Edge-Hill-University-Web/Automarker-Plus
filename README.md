@@ -18,3 +18,4 @@ pip install git+https://github.com/Edge-Hill-Univeristy-Web/Automarker-Plus.git
 
 ## Change log:
 - Removed political statements from student feedback
+- Added support for HTML validator [link](https://teaching.computing.edgehill.ac.uk/validator/html/)
