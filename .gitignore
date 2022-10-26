@@ -1,0 +1,62 @@
+.DS_Store
+.mvn/*
+HELP.md
+*/target/*
+!.mvn/*
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**
+!**/src/test/**
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+### VS Code ###
+.vscode/
+/target/
+
+### Latex Aux files ###
+*.log
+*.aux
+*.dvi
+*.lof
+*.lot
+*.bit
+*.idx
+*.glo
+*.bbl
+*.bcf
+*.ilg
+*.toc
+*.ind
+*.out
+*.blg
+*.fdb_latexmk
+*.fls
+*.run.xml
+*.synctex.gz
+
+### Misc Files ###
+.png
+.ipynb_checkpoints*
+rst-to-ipynb/Input/*
+rst-to-ipynb/Output/*
