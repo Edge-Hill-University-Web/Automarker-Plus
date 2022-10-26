@@ -1,0 +1,101 @@
+# -*- coding: utf-8 -*-
+"""
+#####################################################
+:mod:`automarking.utils` -- Handy Utilities
+#####################################################
+
+.. moduleauthor:: Dan Campbell <danielcampbell2097@hotmail.com>
+"""
+
+import os
+import glob
+import shutil
+from zipfile import ZipFile
+
+
+class GradeBookFix():
+
+    def __init__(self, task_id, module_code, task_file_extensions, gradebook_path):
+        self.task_id = task_id
+        self.module_code = module_code
+        self.task_file_extensions = task_file_extensions
+        self.gradebook_path = gradebook_path
+        self.current_working_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
+        self.OUT_DIR = '{}fixed_gradebook/'.format(self.current_working_directory)
+        self.GB_DIR_ORIGINAL = '{}gradebook_old'.format(self.current_working_directory)
+        self.TEMP_DIR = './{}'.format(self.task_id)
+        self.DIR_LIST = [self.TEMP_DIR, self.GB_DIR_ORIGINAL, self.OUT_DIR, ]
+
+    def __cleanup(self):
+        for dir in self.DIR_LIST:
+            if os.path.exists(dir):
+                shutil.rmtree(dir)
+
+    def __create_temp_directories(self):
+        if not os.path.exists(self.OUT_DIR):
+            os.mkdir(self.OUT_DIR)
+
+    def __extract_gradebook(self):
+        zip = ZipFile(self.gradebook_path)
+        for archive in zip.namelist():
+            if '__MACOSX' not in archive:
+                zip.extract(archive, path=self.GB_DIR_ORIGINAL)
+
+    def __create_fixed_zip(self, original_filename):
+        for path, subdirs, files in os.walk(self.TEMP_DIR):
+            if '__MACOSX' not in path:
+                for name in files:
+                    shutil.move(os.path.join(path, name), self.TEMP_DIR)
+            else:
+                if os.path.exists(path):
+                    shutil.rmtree(path)
+        # Removes subdirectories
+        for element in os.scandir(self.TEMP_DIR):
+            if element.is_dir():
+                shutil.rmtree(element)
+
+        archive_name = os.path.basename(original_filename)
+        destination = self.OUT_DIR + archive_name.strip('.zip')
+        source = self.TEMP_DIR
+        shutil.make_archive(base_name=destination, format='zip',
+                            base_dir=source, root_dir=os.getcwd())
+        if os.path.exists(self.TEMP_DIR):
+            shutil.rmtree(self.TEMP_DIR)
+
+    def __process_submission(self):
+        DL_ZIP_FILES = []
+
+        for path in glob.glob(self.GB_DIR_ORIGINAL + '/**/*zip', recursive=True):
+            DL_ZIP_FILES.append(path)
+
+        for archive in DL_ZIP_FILES:
+            name = "/" + archive.split('/')[-1]
+            archive_name = archive
+
+            archive = ZipFile(archive)
+
+            count = sum(map(lambda x: self.task_id not in x, archive.namelist()))
+            nested = sum(map(lambda x: self.task_id in x, archive.namelist()))
+            # Fixes ZIP
+            if count > 1 or nested > 1:
+                archive.extractall(path=self.TEMP_DIR)
+                self.__create_fixed_zip(archive.filename)
+            # Moves Zip
+            else:
+                os.rename(src=archive_name, dst=self.OUT_DIR + name)
+
+    def __compress_modified_gradebook(self):
+        archive_name = os.path.expanduser(os.path.join(self.current_working_directory,
+                                                       'gradebook_{}_{}_fixed'.format(self.module_code, self.task_id)))
+        root_dir = os.path.expanduser(os.path.join(self.current_working_directory, self.OUT_DIR))
+        shutil.make_archive(archive_name, 'zip', root_dir)
+
+    def fix_zips(self):
+        print('[Fixing Zips] Starting....')
+        self.__cleanup()
+        self.__create_temp_directories()
+        self.__extract_gradebook()
+        self.__process_submission()
+        self.__compress_modified_gradebook()
+        self.__cleanup()
+        print('[Fixing Zips] Completed....') 
