@@ -71,13 +71,24 @@ def run_test(command, parameters, submission_file, timeout=60):
             if stderr:
                 submission_file.feedback.append(stderr)
 
+def process_message(json):
+    message = ""
+    for msg in json['messages']:
+        message = "{} [Type: {}, SubType: {}, Message: {}".format(message, msg['type'],msg['subType'],msg['message'] )
+        if 'firstLine' in msg.keys():
+            message = message + "{}".format(msg['firstLine'])
+        if 'lastLine' in msg.keys():
+            message = message + "{}".format(msg['lastLine'])
+        message = message + "]"
+    return message
+
+
 def run_html_validator(command, parameters, submission_file, timeout=60):
     
     feedback = ""
     with Popen([command] + parameters + HTML_VALIDATOR_URL, stdout=PIPE, stderr=PIPE) as process:
         try:
             stdout, stderr = process.communicate(timeout=timeout)
-            stdout = ""#stdout.decode('utf-8').replace("#StandWithUkraine", "")
             stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")
             
             if stdout != "":
@@ -86,18 +97,6 @@ def run_html_validator(command, parameters, submission_file, timeout=60):
 
         except TimeoutExpired:
             process.kill()
-            stdout = 'Validation failed due to timeout'
-            stderr = 'Validation failed due to timeout'
-        # if process.returncode == 0:
-        #     submission_file.score = 2
-        #     if stdout:
-        #         submission_file.feedback.append(feedback)
-        # else:
-        #     submission_file.score = 1
-        #     if stdout:
-        #         submission_file.feedback.append(feedback)
-        # 
-        # Probably Ignore curl spits out too much crap
-        #       if stderr:
-        #         submission_file.feedback.append(stderr)
-    
+            feedback = 'HTML Validation failed due to timeout'
+
+    return feedback
