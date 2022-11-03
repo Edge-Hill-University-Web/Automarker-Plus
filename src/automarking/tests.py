@@ -4,10 +4,13 @@
 :mod:`automarking.tests` -- Automated Testing Support
 #####################################################
 
-.. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>
+.. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>, Dan Campbell <danielcampbell2097@hotmail.com>
 """
+import json
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE, TimeoutExpired
+
+HTML_VALIDATOR_URL = ["https://teaching.computing.edgehill.ac.uk/validator/html/"]
 
 
 def extract_code(source, start_identifier='// StartStudentCode', end_identifier='// EndStudentCode'):
@@ -67,4 +70,41 @@ def run_test(command, parameters, submission_file, timeout=60):
                 submission_file.feedback.append(stdout)
             if stderr:
                 submission_file.feedback.append(stderr)
-    
+
+def process_message(json):
+    message = ""
+    for msg in json['messages']:
+
+        if message == "":
+            message = "[Type: {}, SubType: {}, Message: {}".format(msg['type'], msg['subType'], msg['message'])
+        else:
+            message = message + "\n[Type: {}, SubType: {}, Message: {}".format(msg['type'], msg['subType'],
+                                                                               msg['message'])
+            if 'firstLine' in msg.keys():
+                message = message + "At Line: {}".format(str(msg['firstLine']))
+            if 'lastLine' in msg.keys():
+                message = message + "Until Line: {}".format(str(msg['lastLine']))
+            message = message + "]"
+    return message
+
+def run_html_validator(path_to_submission_file, timeout=60, command='curl'):
+    feedback = ""
+
+    with Popen([command] + ["-F out=json", "-F charset=utf-8", "-F file={}".format(path_to_submission_file),
+                            HTML_VALIDATOR_URL], stdout=PIPE,
+               stderr=PIPE) as process:
+
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+            stdout = stdout.decode('utf-8')
+            stderr = stderr.decode('utf-8')
+
+            if stdout != "":
+                stdout_dic = json.loads(stdout)
+                feedback = stdout_dic
+
+        except TimeoutExpired:
+            process.kill()
+            feedback = 'Validation failed due to timeout'
+
+    return feedback
