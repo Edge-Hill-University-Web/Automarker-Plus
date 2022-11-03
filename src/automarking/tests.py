@@ -74,29 +74,37 @@ def run_test(command, parameters, submission_file, timeout=60):
 def process_message(json):
     message = ""
     for msg in json['messages']:
-        message = "{} [Type: {}, SubType: {}, Message: {}".format(message, msg['type'],msg['subType'],msg['message'] )
-        if 'firstLine' in msg.keys():
-            message = message + "{}".format(msg['firstLine'])
-        if 'lastLine' in msg.keys():
-            message = message + "{}".format(msg['lastLine'])
-        message = message + "]"
+
+        if message == "":
+            message = "[Type: {}, SubType: {}, Message: {}".format(msg['type'], msg['subType'], msg['message'])
+        else:
+            message = message + "\n[Type: {}, SubType: {}, Message: {}".format(msg['type'], msg['subType'],
+                                                                               msg['message'])
+            if 'firstLine' in msg.keys():
+                message = message + "At Line: {}".format(str(msg['firstLine']))
+            if 'lastLine' in msg.keys():
+                message = message + "Until Line: {}".format(str(msg['lastLine']))
+            message = message + "]"
     return message
 
-
-def run_html_validator(command, parameters, submission_file, timeout=60):
-    
+def run_html_validator(path_to_submission_file, timeout=60, command='curl'):
     feedback = ""
-    with Popen([command] + parameters + HTML_VALIDATOR_URL, stdout=PIPE, stderr=PIPE) as process:
+
+    with Popen([command] + ["-F out=json", "-F charset=utf-8", "-F file={}".format(path_to_submission_file),
+                            HTML_VALIDATOR_URL], stdout=PIPE,
+               stderr=PIPE) as process:
+
         try:
             stdout, stderr = process.communicate(timeout=timeout)
-            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")
-            
+            stdout = stdout.decode('utf-8')
+            stderr = stderr.decode('utf-8')
+
             if stdout != "":
                 stdout_dic = json.loads(stdout)
-                feedback = feedback + process_message(stdout_dic)
+                feedback = stdout_dic
 
         except TimeoutExpired:
             process.kill()
-            feedback = 'HTML Validation failed due to timeout'
+            feedback = 'Validation failed due to timeout'
 
     return feedback
