@@ -7,10 +7,13 @@
 .. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>, Dan Campbell <danielcampbell2097@hotmail.com>
 """
 import json
+import urllib.parse
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE, TimeoutExpired
 
+
 HTML_VALIDATOR_URL = ["https://teaching.computing.edgehill.ac.uk/validator/html/"]
+CSS_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/css/validator?"
 
 
 def extract_code(source, start_identifier='// StartStudentCode', end_identifier='// EndStudentCode'):
@@ -26,7 +29,7 @@ def extract_code(source, start_identifier='// StartStudentCode', end_identifier=
                 source = StringIO(source.read().decode('latin-1'))
             except UnicodeDecodeError:
                 try:
-                     source = StringIO(source.read().decode('ascii'))
+                    source = StringIO(source.read().decode('ascii'))
                 except UnicodeDecodeError:
                     print('Could not decode file')
                     sourced = StringIO('')
@@ -71,6 +74,7 @@ def run_test(command, parameters, submission_file, timeout=60):
             if stderr:
                 submission_file.feedback.append(stderr)
 
+
 def process_message(json):
     message = ""
     for msg in json['messages']:
@@ -87,6 +91,7 @@ def process_message(json):
             message = message + "]"
     return message
 
+
 def run_html_validator(path_to_submission_file, timeout=60, command='curl'):
     feedback = ""
 
@@ -102,6 +107,38 @@ def run_html_validator(path_to_submission_file, timeout=60, command='curl'):
             if stdout != "":
                 stdout_dic = json.loads(stdout)
                 feedback = stdout_dic
+
+        except TimeoutExpired:
+            process.kill()
+            feedback = 'Validation failed due to timeout'
+
+    return feedback
+
+'''
+Triggers the various `outputs_formats` of the validator. The Possible formats are 
+    - text/html 
+    - html
+    - xhtml 
+    - application/soap+xml
+    - text/plain
+    - text
+'''
+def run_css_validator(path_to_submission_file ,output_format='text', timeout=60, command='curl'):
+    feedback = ""
+
+    safeCSS = urllib.parse.quote(open(path_to_submission_file).read())
+
+    with Popen([command] + [CSS_VALIDATOR_URL+"output={}&text={}&lang=en".format(output_format, safeCSS)], stdout=PIPE,
+               stderr=PIPE) as process:
+
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+            stdout = stdout.decode('utf-8')
+            stderr = stderr.decode('utf-8')
+
+            if stdout != "":
+
+                    feedback = stdout
 
         except TimeoutExpired:
             process.kill()
