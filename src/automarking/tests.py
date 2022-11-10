@@ -104,10 +104,10 @@ text: Human-readable text (not for machine parsing)
 def run_html_validator(path_to_submission_file, output_format='json', timeout=60, cmd='curl'):
     feedback = ""
 
-    data = open(path_to_submission_file).read()
+    data = open(path_to_submission_file, encoding="utf-8").read()
 
 
-    command = [cmd, '-X', 'POST', HTML_VALIDATOR_URL+"out={}".format(output_format), '--data-binary', "{}".format(data), '-H', "Content-Type: text/html"]
+    command = [cmd, '-X', 'POST', HTML_VALIDATOR_URL+"out={}".format(output_format), '--data-binary', "{}".format(data), '-H', "Content-Type: text/html;charset=utf-8"]
 
     with Popen(command, stdout=PIPE,
                stderr=PIPE) as process:
@@ -158,3 +158,7 @@ def run_css_validator(path_to_submission_file ,output_format='text', timeout=60,
             feedback = 'Validation failed due to timeout'
 
     return feedback
+
+
+
+print(run_html_validator("question_01.html", output_format='json', timeout=60, cmd='curl'))
