@@ -12,7 +12,7 @@ from io import StringIO, BytesIO
 from subprocess import Popen, PIPE, TimeoutExpired
 
 
-HTML_VALIDATOR_URL = ["https://teaching.computing.edgehill.ac.uk/validator/html/"]
+HTML_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/html/"
 CSS_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/css/validator?"
 
 
