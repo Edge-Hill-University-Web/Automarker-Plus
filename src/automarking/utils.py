@@ -135,13 +135,3 @@ class GradeBookFix():
         print('[Ultra Gradebook] Fixed Gradebook Submissions...')
 
 
-current_working_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
-task_id = 'task_02'
-module_code = 'CIS1110'
-CIS1110_file_extensions = ['.html']
-
-
-test = GradeBookFix(task_id=task_id, module_code=module_code, task_file_extensions=CIS1110_file_extensions,
-                    gradebook_path=current_working_directory + 'gradebook.zip')
-
-test.ultra_gradebook_submission_download_fix()
