@@ -90,6 +90,29 @@ class GradeBookFix():
         root_dir = os.path.expanduser(os.path.join(self.current_working_directory, self.OUT_DIR))
         shutil.make_archive(archive_name, 'zip', root_dir)
 
+    def __remove_old_attempts(self):
+        last_sub_dic = {}
+        dup_subs = {}
+        for path, subdirs, files in os.walk(self.GB_DIR_ORIGINAL):
+            for name in files:
+                parts = name.split("_")
+                student = parts[1]
+                last_sub_dic[student] = name
+        for name in last_sub_dic.values():
+            os.rename(src="{}/{}".format(self.GB_DIR_ORIGINAL, name), dst=self.OUT_DIR + name)
+
+        # Proof
+        # if student in dup_subs.keys():
+        #     dup_subs[student] = dup_subs.get(student) + 1
+        # else:
+        #     dup_subs[student] = 1
+
+        # print(parts)
+
+        # dup = {k:v for (k,v) in dup_subs.items() if v > 1}
+        # for student in dup.keys():
+        #     print(last_sub_dic.get(student))
+
     def fix_zips(self):
         print('[Fixing Zips] Starting....')
         self.__cleanup()
@@ -98,4 +121,17 @@ class GradeBookFix():
         self.__process_submission()
         self.__compress_modified_gradebook()
         self.__cleanup()
-        print('[Fixing Zips] Completed....') 
+        print('[Fixing Zips] Completed....')
+
+    def ultra_gradebook_submission_download_fix(self):
+        print(
+            '[Ultra Gradebook] Beginning to fix Gradebook Submissions...')
+        self.__cleanup()
+        self.__create_temp_directories()
+        self.__extract_gradebook()
+        self.__remove_old_attempts()
+        self.__compress_modified_gradebook()
+        self.__cleanup()
+        print('[Ultra Gradebook] Fixed Gradebook Submissions...')
+
+
