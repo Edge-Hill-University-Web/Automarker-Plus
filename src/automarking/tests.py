@@ -12,7 +12,7 @@ from io import StringIO, BytesIO
 from subprocess import Popen, PIPE, TimeoutExpired
 
 
-HTML_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/html/"
+HTML_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/html?"
 CSS_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/css/validator?"
 
 
@@ -91,12 +91,25 @@ def process_message(json):
             message = message + "]"
     return message
 
+'''
+output_format options:
+none: HTML
+xhtml: XHTML
+xml: XML
+json: JSON
+gnu: GNU error format
+text: Human-readable text (not for machine parsing)
 
-def run_html_validator(path_to_submission_file, timeout=60, command='curl'):
+'''
+def run_html_validator(path_to_submission_file, output_format='json', timeout=60, cmd='curl'):
     feedback = ""
 
-    with Popen([command] + ["-F out=json", "-F charset=utf-8", "-F file={}".format(path_to_submission_file),
-                            HTML_VALIDATOR_URL], stdout=PIPE,
+    data = open(path_to_submission_file).read()
+
+
+    command = [cmd, '-X', 'POST', HTML_VALIDATOR_URL+"out={}".format(output_format), '--data-binary', "{}".format(data), '-H', "Content-Type: text/html"]
+
+    with Popen(command, stdout=PIPE,
                stderr=PIPE) as process:
 
         try:
@@ -145,3 +158,7 @@ def run_css_validator(path_to_submission_file ,output_format='text', timeout=60,
             feedback = 'Validation failed due to timeout'
 
     return feedback
+
+
+test = run_html_validator('test.html', timeout=60, command='curl')
+print(test)
