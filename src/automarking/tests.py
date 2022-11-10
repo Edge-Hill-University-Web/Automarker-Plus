@@ -158,7 +158,3 @@ def run_css_validator(path_to_submission_file ,output_format='text', timeout=60,
             feedback = 'Validation failed due to timeout'
 
     return feedback
-
-
-test = run_html_validator('test.html', timeout=60, command='curl')
-print(test)
