@@ -118,7 +118,9 @@ def run_html_validator(path_to_submission_file, output_format='json', timeout=60
             stderr = stderr.decode('utf-8')
 
             if stdout != "":
-                stdout_dic = json.loads(stdout)
+                if output_format == 'json':
+                    stdout_dic = json.loads(stdout)
+
                 feedback = stdout_dic
 
         except TimeoutExpired:
