@@ -18,5 +18,8 @@ pip install git+https://github.com/Edge-Hill-Univeristy-Web/Automarker-Plus.git
 
 ## Change log:
 - Removed political statements from student feedback
-- Added support for HTML validator [link](https://teaching.computing.edgehill.ac.uk/validator/html/) returns a dictionary.
-- Added GradeBookFix class usage => `GradebookFix(task_id, module_code, task_file_extensions, gradebook_path).fix_zips()`
+- Added support for HTML validator [link](https://teaching.computing.edgehill.ac.uk/validator/html/).
+- Added support for CSS validator
+- Added `GradeBookFix` class
+  - fix_zips usage => `GradebookFix(task_id, module_code, task_file_extensions, gradebook_path, cwd).fix_zips()`
+  - Utlra submission fix => `GradebookFix(task_id, module_code, task_file_extensions, gradebook_path, cwd)ultra_gradebook_submission_download_fix()`
