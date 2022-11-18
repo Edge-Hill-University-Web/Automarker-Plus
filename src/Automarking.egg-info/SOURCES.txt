@@ -1,0 +1,11 @@
+README.rst
+setup.py
+src/Automarking.egg-info/PKG-INFO
+src/Automarking.egg-info/SOURCES.txt
+src/Automarking.egg-info/dependency_links.txt
+src/Automarking.egg-info/not-zip-safe
+src/Automarking.egg-info/requires.txt
+src/Automarking.egg-info/top_level.txt
+src/automarking/__init__.py
+src/automarking/core.py
+src/automarking/tests.py
