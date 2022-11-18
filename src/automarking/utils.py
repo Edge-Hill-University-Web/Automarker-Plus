@@ -15,15 +15,15 @@ from zipfile import ZipFile
 
 class GradeBookFix():
 
-    def __init__(self, task_id, module_code, task_file_extensions, gradebook_path):
+    def __init__(self, task_id, module_code, task_file_extensions, gradebook_path, cwd):
         self.task_id = task_id
         self.module_code = module_code
         self.task_file_extensions = task_file_extensions
         self.gradebook_path = gradebook_path
-        self.current_working_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
+        self.current_working_directory = cwd
         self.OUT_DIR = '{}fixed_gradebook/'.format(self.current_working_directory)
         self.GB_DIR_ORIGINAL = '{}gradebook_old'.format(self.current_working_directory)
-        self.TEMP_DIR = './{}'.format(self.task_id)
+        self.TEMP_DIR = '{}{}'.format(self.cwd,self.task_id)
         self.DIR_LIST = [self.TEMP_DIR, self.GB_DIR_ORIGINAL, self.OUT_DIR, ]
 
     def __cleanup(self):
@@ -85,12 +85,14 @@ class GradeBookFix():
                 os.rename(src=archive_name, dst=self.OUT_DIR + name)
 
     def __compress_modified_gradebook(self):
+        print('[Ultra Gradebook] Compressing modified Gradebook')
         archive_name = os.path.expanduser(os.path.join(self.current_working_directory,
                                                        'gradebook_{}_{}_fixed'.format(self.module_code, self.task_id)))
         root_dir = os.path.expanduser(os.path.join(self.current_working_directory, self.OUT_DIR))
         shutil.make_archive(archive_name, 'zip', root_dir)
 
     def __remove_old_attempts(self):
+        print('[Ultra Gradebook] Removing old attempts...')
         last_sub_dic = {}
         dup_subs = {}
         for path, subdirs, files in os.walk(self.GB_DIR_ORIGINAL):
@@ -125,13 +127,13 @@ class GradeBookFix():
 
     def ultra_gradebook_submission_download_fix(self):
         print(
-            '[Ultra Gradebook] Beginning to fix Gradebook Submissions...')
+        '[Ultra Gradebook] Beginning to fix Gradebook Submissions...')
         self.__cleanup()
         self.__create_temp_directories()
         self.__extract_gradebook()
         self.__remove_old_attempts()
         self.__compress_modified_gradebook()
         self.__cleanup()
-        print('[Ultra Gradebook] Fixed Gradebook Submissions...')
+        print('[Ultra Gradebook] Fixed Gradebook Submissions.')
 
 
