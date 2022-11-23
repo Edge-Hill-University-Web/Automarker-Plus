@@ -22,4 +22,4 @@ pip install git+https://github.com/Edge-Hill-Univeristy-Web/Automarker-Plus.git
 - Added support for CSS validator
 - Added `GradeBookFix` class
   - fix_zips usage => `GradebookFix(task_id, module_code, task_file_extensions, gradebook_path, cwd).fix_zips()`
-  - Utlra submission fix => `GradebookFix(task_id, module_code, task_file_extensions, gradebook_path, cwd)ultra_gradebook_submission_download_fix()`
+  - Utlra submission fix => `GradebookFix(task_id, module_code, task_file_extensions, gradebook_path, cwd).ultra_gradebook_submission_download_fix()`
