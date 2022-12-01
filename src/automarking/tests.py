@@ -11,7 +11,6 @@ import urllib.parse
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE, TimeoutExpired
 
-
 HTML_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/html?"
 CSS_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/css/validator?"
 
@@ -91,6 +90,7 @@ def process_message(json):
             message = message + "]"
     return message
 
+
 '''
 output_format options:
 none: HTML
@@ -101,13 +101,15 @@ gnu: GNU error format
 text: Human-readable text (not for machine parsing)
 
 '''
+
+
 def run_html_validator(path_to_submission_file, output_format='json', timeout=60, cmd='curl'):
     feedback = ""
 
     data = open(path_to_submission_file, encoding="utf-8").read()
 
-
-    command = [cmd, '-X', 'POST', HTML_VALIDATOR_URL+"out={}".format(output_format), '--data-binary', "{}".format(data), '-H', "Content-Type: text/html;charset=utf-8"]
+    command = [cmd, '-X', 'POST', HTML_VALIDATOR_URL + "out={}".format(output_format), '--data-binary',
+               "{}".format(data), '-H', "Content-Type: text/html;charset=utf-8"]
 
     with Popen(command, stdout=PIPE,
                stderr=PIPE) as process:
@@ -129,6 +131,7 @@ def run_html_validator(path_to_submission_file, output_format='json', timeout=60
 
     return feedback
 
+
 '''
 Triggers the various `outputs_formats` of the validator. The Possible formats are 
     - text/html 
@@ -138,12 +141,15 @@ Triggers the various `outputs_formats` of the validator. The Possible formats ar
     - text/plain
     - text
 '''
-def run_css_validator(path_to_submission_file ,output_format='text', timeout=60, command='curl'):
+
+
+def run_css_validator(path_to_submission_file, output_format='json', timeout=60, command='curl'):
     feedback = ""
 
-    safeCSS = urllib.parse.quote(open(path_to_submission_file).read())
+    safeCSS = urllib.parse.quote(open(path_to_submission_file).read(), safe='/')
 
-    with Popen([command] + [CSS_VALIDATOR_URL+"output={}&text={}&lang=en".format(output_format, safeCSS)], stdout=PIPE,
+    with Popen([command] + [CSS_VALIDATOR_URL + "output={}&text={}&lang=en".format(output_format, safeCSS)],
+               stdout=PIPE,
                stderr=PIPE) as process:
 
         try:
@@ -152,8 +158,7 @@ def run_css_validator(path_to_submission_file ,output_format='text', timeout=60,
             stderr = stderr.decode('utf-8')
 
             if stdout != "":
-
-                    feedback = stdout
+                feedback = stdout
 
         except TimeoutExpired:
             process.kill()
