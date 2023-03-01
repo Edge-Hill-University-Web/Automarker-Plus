@@ -12,6 +12,8 @@ import glob
 import shutil
 from zipfile import ZipFile
 
+def format_feedback(feedback, start_tag='\t<li>', end_tag='\t</li>',):
+    return f"{start_tag}{feedback}{end_tag}"
 
 class GradeBookFix():
 
@@ -147,7 +149,6 @@ class GradeBookFix():
         self.__compress_modified_gradebook()
         self.__cleanup()
         print('[Ultra Gradebook] Fixed Gradebook Submissions.')
-
 
 # current_working_directory = os.path.dirname(os.path.realpath(__file__)) + '/'
 # GB = current_working_directory + 'gradebook.zip'
