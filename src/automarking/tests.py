@@ -87,7 +87,7 @@ def run_test_and_return_output(command, parameters, timeout=5):
             # TODO This can be moved outside of the tests
             if 'SyntaxError' in stderr:
                 print(SyntaxError)
-                stderr = re.search(r'SyntaxError: *.*', stderr).group().
+                stderr = re.search(r'SyntaxError: *.*', stderr).group()
             else:
                 stderr = re.sub(r'.*line\s+\d+,\s+in\s+', "", stderr)
                 stderr=stderr.replace('<module>', "")
