@@ -72,6 +72,36 @@ def run_test(command, parameters, submission_file, timeout=60):
                 submission_file.feedback.append(stdout)
             if stderr:
                 submission_file.feedback.append(stderr)
+                
+def run_test_and_return_output(command, parameters, timeout=5):
+
+    with Popen([command] + parameters, stdout=PIPE, stderr=PIPE) as process:
+        try:
+            
+       
+            stdout, stderr = process.communicate(timeout=timeout)
+            stdout = stdout.decode('utf-8').replace("#StandWithUkraine", "")
+            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")  
+            
+
+            # TODO This can be moved outside of the tests
+            if 'SyntaxError' in stderr:
+                print(SyntaxError)
+                stderr = re.search(r'SyntaxError: *.*', stderr).group().
+            else:
+                stderr = re.sub(r'.*line\s+\d+,\s+in\s+', "", stderr)
+                stderr=stderr.replace('<module>', "")
+
+            if 'at reverse (merge' in stdout:
+                stdout= 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
+
+        except TimeoutExpired:
+            process.kill()
+            stdout = None
+            stderr = 'Test failed due to timeout'
+            
+        return {'out': stdout, 'err': stderr, 'code': process.returncode}
+
 
 
 def process_message(json):
