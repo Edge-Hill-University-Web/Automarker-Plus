@@ -52,26 +52,65 @@ def merge_code(base, overlay, start_identifier='// StartStudentCode', end_identi
     return '\n'.join([pre, code, post])
 
 
-def run_test(command, parameters, submission_file, timeout=60):
+def run_test(command, parameters, submission_file, timeout=60, correct_points=4, attempt_points=2, simple=False):
+
     with Popen([command] + parameters, stdout=PIPE, stderr=PIPE) as process:
         try:
+
             stdout, stderr = process.communicate(timeout=timeout)
             stdout = stdout.decode('utf-8').replace("#StandWithUkraine", "")
-            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")
+            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")  
+
+            if 'at reverse (merge' in stdout:
+                stdout= 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
+            
+            if simple:
+                
+                if submission_file.spec.identifier.endswith('.php'): # Handle PHPUnit Output
+                 
+                    if'OK' in stdout: # PASS
+                        stdout = "PHP Unit: Test Passed"
+                        submission_file.score = correct_points
+                        submission_file.feedback.append(format_feedback(stdout)) 
+                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
+                        
+                    elif 'OK' not in stdout:# Fail
+                        stdout  = re.search(r'(There was \d (error|failure):)[\s\S]([\w\s]*.*){1,2}', stdout, re.MULTILINE).group().strip()
+                        submission_file.score = attempt_points
+                        submission_file.feedback.append(format_feedback(stdout))  
+                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))      
+                
+                if submission_file.spec.identifier.endswith('.js'): # Java Script                   
+                    if 'failing' in stdout:
+                        stdout = re.search(r'(^.*\wError:*.*)', stdout, re.MULTILINE).group().strip()
+                        submission_file.score = attempt_points
+                        submission_file.feedback.append(format_feedback(stdout))
+                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))
+                    elif '✔' in stdout:
+                        stdout = "Mocha: Test Passed"
+                        submission_file.score = correct_points
+                        submission_file.feedback.append(format_feedback(stdout))
+                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
+            
+            elif not simple:
+                
+                if process.returncode == 0:
+                    submission_file.score = correct_points
+                    if stdout:
+                        submission_file.feedback.append(format_feedback(stdout))
+                else:
+                    submission_file.score = attempt_points
+                    if stdout:
+                        submission_file.feedback.append(format_feedback(stdout))
+                    if stderr:
+                        submission_file.feedback.append(format_feedback(stderr))                
+        
+        
         except TimeoutExpired:
             process.kill()
             stdout = None
             stderr = 'Test failed due to timeout'
-        if process.returncode == 0:
-            submission_file.score = 2
-            if stdout:
-                submission_file.feedback.append(stdout)
-        else:
-            submission_file.score = 1
-            if stdout:
-                submission_file.feedback.append(stdout)
-            if stderr:
-                submission_file.feedback.append(stderr)
+            
                 
 def run_test_and_return_output(command, parameters, timeout=5):
 
