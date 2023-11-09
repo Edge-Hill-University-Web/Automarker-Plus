@@ -7,6 +7,7 @@
 .. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>, Dan Campbell <danielcampbell2097@hotmail.com>
 """
 import json
+import re
 import urllib.parse
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -14,6 +15,8 @@ from subprocess import Popen, PIPE, TimeoutExpired
 HTML_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/html?"
 CSS_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/css/validator?"
 
+def format_feedback(feedback, start_tag='\t<li>', end_tag='</li>',):
+    return f"{start_tag}{feedback}{end_tag}"
 
 def extract_code(source, start_identifier='// StartStudentCode', end_identifier='// EndStudentCode'):
     pre = []
