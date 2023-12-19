@@ -251,6 +251,6 @@ class SubmissionPart(object):
         return self.data
 
     def __exit__(self, type_, value, traceback):
-        self.feedback.insert(0, '#' * len(self.spec.title))
-        self.feedback.insert(0, self.spec.title)
-        self.feedback.insert(0, '#' * len(self.spec.title))
+        #self.feedback.insert(0, '#' * len(self.spec.title))
+        self.feedback.insert(0, f"<h4>{self.spec.title}</h4>")
+        #self.feedback.insert(0, '#' * len(self.spec.title))

@@ -7,11 +7,16 @@
 .. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>, Dan Campbell <danielcampbell2097@hotmail.com>
 """
 import json
+import re
+import urllib.parse
 from io import StringIO, BytesIO
 from subprocess import Popen, PIPE, TimeoutExpired
 
-HTML_VALIDATOR_URL = ["https://teaching.computing.edgehill.ac.uk/validator/html/"]
+HTML_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/html?"
+CSS_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/css/validator?"
 
+def format_feedback(feedback, start_tag='\t<li>', end_tag='</li>',):
+    return f"{start_tag}{feedback}{end_tag}"
 
 def extract_code(source, start_identifier='// StartStudentCode', end_identifier='// EndStudentCode'):
     pre = []
@@ -26,7 +31,7 @@ def extract_code(source, start_identifier='// StartStudentCode', end_identifier=
                 source = StringIO(source.read().decode('latin-1'))
             except UnicodeDecodeError:
                 try:
-                     source = StringIO(source.read().decode('ascii'))
+                    source = StringIO(source.read().decode('ascii'))
                 except UnicodeDecodeError:
                     print('Could not decode file')
                     sourced = StringIO('')
@@ -50,26 +55,96 @@ def merge_code(base, overlay, start_identifier='// StartStudentCode', end_identi
     return '\n'.join([pre, code, post])
 
 
-def run_test(command, parameters, submission_file, timeout=60):
+def run_test(command, parameters, submission_file, timeout=60, correct_points=4, attempt_points=2, simple=False):
+
     with Popen([command] + parameters, stdout=PIPE, stderr=PIPE) as process:
         try:
+
             stdout, stderr = process.communicate(timeout=timeout)
             stdout = stdout.decode('utf-8').replace("#StandWithUkraine", "")
-            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")
+            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")  
+
+            if 'at reverse (merge' in stdout:
+                stdout= 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
+            
+            if simple:
+                
+                if submission_file.spec.identifier.endswith('.php'): # Handle PHPUnit Output
+                 
+                    if'OK' in stdout: # PASS
+                        stdout = "PHP Unit: Test Passed"
+                        submission_file.score = correct_points
+                        submission_file.feedback.append(format_feedback(stdout)) 
+                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
+                        
+                    elif 'OK' not in stdout:# Fail
+                        stdout  = re.search(r'(There was \d (error|failure):)[\s\S]([\w\s]*.*){1,2}', stdout, re.MULTILINE).group().strip()
+                        submission_file.score = attempt_points
+                        submission_file.feedback.append(format_feedback(stdout))  
+                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))      
+                
+                if submission_file.spec.identifier.endswith('.js'): # Java Script                   
+                    if 'failing' in stdout:
+                        stdout = re.search(r'(^.*\wError:*.*)', stdout, re.MULTILINE).group().strip()
+                        submission_file.score = attempt_points
+                        submission_file.feedback.append(format_feedback(stdout))
+                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))
+                    elif '✔' in stdout:
+                        stdout = "Mocha: Test Passed"
+                        submission_file.score = correct_points
+                        submission_file.feedback.append(format_feedback(stdout))
+                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
+            
+            elif not simple:
+                
+                if process.returncode == 0:
+                    submission_file.score = correct_points
+                    if stdout:
+                        submission_file.feedback.append(format_feedback(stdout))
+                else:
+                    submission_file.score = attempt_points
+                    if stdout:
+                        submission_file.feedback.append(format_feedback(stdout))
+                    if stderr:
+                        submission_file.feedback.append(format_feedback(stderr))                
+        
+        
         except TimeoutExpired:
             process.kill()
             stdout = None
             stderr = 'Test failed due to timeout'
-        if process.returncode == 0:
-            submission_file.score = 2
-            if stdout:
-                submission_file.feedback.append(stdout)
-        else:
-            submission_file.score = 1
-            if stdout:
-                submission_file.feedback.append(stdout)
-            if stderr:
-                submission_file.feedback.append(stderr)
+            
+                
+def run_test_and_return_output(command, parameters, timeout=5):
+
+    with Popen([command] + parameters, stdout=PIPE, stderr=PIPE) as process:
+        try:
+            
+       
+            stdout, stderr = process.communicate(timeout=timeout)
+            stdout = stdout.decode('utf-8').replace("#StandWithUkraine", "")
+            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")  
+            
+
+            # TODO This can be moved outside of the tests
+            if 'SyntaxError' in stderr:
+                print(SyntaxError)
+                stderr = re.search(r'SyntaxError: *.*', stderr).group()
+            else:
+                stderr = re.sub(r'.*line\s+\d+,\s+in\s+', "", stderr)
+                stderr=stderr.replace('<module>', "")
+
+            if 'at reverse (merge' in stdout:
+                stdout= 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
+
+        except TimeoutExpired:
+            process.kill()
+            stdout = None
+            stderr = 'Test failed due to timeout'
+            
+        return {'out': stdout, 'err': stderr, 'code': process.returncode}
+
+
 
 def process_message(json):
     message = ""
@@ -87,11 +162,28 @@ def process_message(json):
             message = message + "]"
     return message
 
-def run_html_validator(path_to_submission_file, timeout=60, command='curl'):
+
+'''
+output_format options:
+none: HTML
+xhtml: XHTML
+xml: XML
+json: JSON
+gnu: GNU error format
+text: Human-readable text (not for machine parsing)
+
+'''
+
+
+def run_html_validator(path_to_submission_file, output_format='json', timeout=60, cmd='curl'):
     feedback = ""
 
-    with Popen([command] + ["-F out=json", "-F charset=utf-8", "-F file={}".format(path_to_submission_file),
-                            HTML_VALIDATOR_URL], stdout=PIPE,
+    data = open(path_to_submission_file, encoding="utf-8").read()
+
+    command = [cmd, '-X', 'POST', HTML_VALIDATOR_URL + "out={}".format(output_format), '--data-binary',
+               "{}".format(data), '-H', "Content-Type: text/html;charset=utf-8"]
+
+    with Popen(command, stdout=PIPE,
                stderr=PIPE) as process:
 
         try:
@@ -100,8 +192,45 @@ def run_html_validator(path_to_submission_file, timeout=60, command='curl'):
             stderr = stderr.decode('utf-8')
 
             if stdout != "":
-                stdout_dic = json.loads(stdout)
+                if output_format == 'json':
+                    stdout_dic = json.loads(stdout)
+
                 feedback = stdout_dic
+
+        except TimeoutExpired:
+            process.kill()
+            feedback = 'Validation failed due to timeout'
+
+    return feedback
+
+
+'''
+Triggers the various `outputs_formats` of the validator. The Possible formats are 
+    - text/html 
+    - html
+    - xhtml 
+    - application/soap+xml
+    - text/plain
+    - text
+'''
+
+
+def run_css_validator(path_to_submission_file, output_format='json', timeout=60, command='curl'):
+    feedback = ""
+
+    safeCSS = urllib.parse.quote(open(path_to_submission_file).read(), safe='/')
+
+    with Popen([command] + [CSS_VALIDATOR_URL + "output={}&text={}&lang=en".format(output_format, safeCSS)],
+               stdout=PIPE,
+               stderr=PIPE) as process:
+
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+            stdout = stdout.decode('utf-8')
+            stderr = stderr.decode('utf-8')
+
+            if stdout != "":
+                feedback = stdout
 
         except TimeoutExpired:
             process.kill()
