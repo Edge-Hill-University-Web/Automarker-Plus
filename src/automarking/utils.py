@@ -40,7 +40,7 @@ class GradeBookFix():
     def __extract_gradebook(self):
         zip = ZipFile(self.gradebook_path)
         for archive in zip.namelist():
-            if '__MACOSX' not in archive:
+            if '__MACOSX' not in archive and '.txt' not in archive :
                 zip.extract(archive, path=self.GB_DIR_ORIGINAL)
 
     def __create_fixed_zip(self, original_filename):

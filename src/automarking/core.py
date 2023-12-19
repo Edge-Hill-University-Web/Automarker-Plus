@@ -8,7 +8,7 @@ The main classes are the :class:`~automarking.core.SubmissionSpec`, used for
 specifying the files to extract, and the :class:`~automarking.core.BlackboardDataSource`
 that loads data from the files downloaded from by Blackboard.
 
-.. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>
+.. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu> | Dan Campbell <danielcampbell2097@hotmail.com>
 """
 import os
 import re

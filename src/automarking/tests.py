@@ -15,8 +15,10 @@ from subprocess import Popen, PIPE, TimeoutExpired
 HTML_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/html?"
 CSS_VALIDATOR_URL = "https://teaching.computing.edgehill.ac.uk/validator/css/validator?"
 
-def format_feedback(feedback, start_tag='\t<li>', end_tag='</li>',):
+
+def format_feedback(feedback, start_tag='\t<li>', end_tag='</li>', ):
     return f"{start_tag}{feedback}{end_tag}"
+
 
 def extract_code(source, start_identifier='// StartStudentCode', end_identifier='// EndStudentCode'):
     pre = []
@@ -56,47 +58,88 @@ def merge_code(base, overlay, start_identifier='// StartStudentCode', end_identi
 
 
 def run_test(command, parameters, submission_file, timeout=60, correct_points=4, attempt_points=2, simple=False):
-
     with Popen([command] + parameters, stdout=PIPE, stderr=PIPE) as process:
         try:
 
             stdout, stderr = process.communicate(timeout=timeout)
             stdout = stdout.decode('utf-8').replace("#StandWithUkraine", "")
-            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")  
+            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")
 
             if 'at reverse (merge' in stdout:
-                stdout= 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
-            
+                stdout = 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
+
             if simple:
-                
-                if submission_file.spec.identifier.endswith('.php'): # Handle PHPUnit Output
-                 
-                    if'OK' in stdout: # PASS
-                        stdout = "PHP Unit: Test Passed"
-                        submission_file.score = correct_points
-                        submission_file.feedback.append(format_feedback(stdout)) 
-                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
-                        
-                    elif 'OK' not in stdout:# Fail
-                        stdout  = re.search(r'(There was \d (error|failure):)[\s\S]([\w\s]*.*){1,2}', stdout, re.MULTILINE).group().strip()
-                        submission_file.score = attempt_points
-                        submission_file.feedback.append(format_feedback(stdout))  
-                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))      
-                
-                if submission_file.spec.identifier.endswith('.js'): # Java Script                   
-                    if 'failing' in stdout:
-                        stdout = re.search(r'(^.*\wError:*.*)', stdout, re.MULTILINE).group().strip()
-                        submission_file.score = attempt_points
-                        submission_file.feedback.append(format_feedback(stdout))
-                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))
-                    elif '✔' in stdout:
-                        stdout = "Mocha: Test Passed"
-                        submission_file.score = correct_points
-                        submission_file.feedback.append(format_feedback(stdout))
-                        submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
-            
+
+                # Order of this list is important for the feedback!
+                console_streams = [stderr, stdout]
+                for stream in console_streams:
+                    if not not stream:
+                        if submission_file.spec.identifier.endswith('.php'):  # Handle PHPUnit Output
+
+                            if 'OK' in stream:  # PASS
+                                stdout = "PHP Unit: Test Passed"
+                                submission_file.score = correct_points
+                                submission_file.feedback.append(format_feedback(stdout))
+                                submission_file.feedback.append(format_feedback(
+                                    "You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
+                            elif 'PHP Warning' in stream:
+                                stream = stream.split(sep=',')[0]
+                                submission_file.feedback.append(format_feedback(stream))
+                            elif 'ParseError: syntax error' in stream:
+                                submission_file.score = attempt_points
+                                submission_file.feedback.append(
+                                    format_feedback("PHP Fatal error:  Uncaught ParseError: syntax error"))
+                                submission_file.feedback.append(
+                                    format_feedback("You have been awarded 2 marks for an attempt"))
+                            elif 'Call to undefined function' in stream:
+                                stream = re.search(r'Error: (.+?)\n', stream).group().strip()
+                                submission_file.score = attempt_points
+                                submission_file.feedback.append(format_feedback(f'{stream}'))
+                                submission_file.feedback.append(
+                                    format_feedback("You have been awarded 2 marks for an attempt"))
+
+                            elif 'because the name is already in use' in stream:
+                                stream = re.search(r'PHP Fatal error: (.+?) in (.+?) ', stream)
+                                submission_file.score = attempt_points
+                                submission_file.feedback.append(format_feedback(f'PHP Fatal error: {stream.group(1)}'))
+                                submission_file.feedback.append(
+                                    format_feedback("You have been awarded 2 marks for an attempt"))
+                            elif 'OK' not in stream:  # Fail
+                                try:
+                                    stream = re.search(r'(There was \d (error|failure):)[\s\S]([\w\s]*.*){1,2}', stdout,
+                                                       re.MULTILINE).group().strip()
+                                    stream = re.sub(r'\d\)\s{1,}question_\d{1,}::test', '', stream)
+                                    submission_file.score = attempt_points
+                                    submission_file.feedback.append(format_feedback(stream.replace('\n', ' ')))
+                                    submission_file.feedback.append(
+                                        format_feedback("You have been awarded 2 marks for an attempt"))
+                                except Exception as e:
+                                    print(f'{e}\n There was an error processing...\n {stream} \n')
+
+                        if submission_file.spec.identifier.endswith('.js'):  # Java Script
+
+                            if 'failing' in stream:
+                                stream = re.search(r'(^.*\wError:*.*)', stream, re.MULTILINE).group().strip()
+                                submission_file.score = attempt_points
+                                submission_file.feedback.append(format_feedback(stream))
+                                submission_file.feedback.append(
+                                    format_feedback("You have been awarded 2 marks for an attempt"))
+                            elif '✔' in stream:
+                                stream = "Mocha: Test Passed"
+                                submission_file.score = correct_points
+                                submission_file.feedback.append(format_feedback(stream))
+                                submission_file.feedback.append(format_feedback(
+                                    "You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
+
+                            elif 'Error' in stream:
+                                stream = re.search(r'.*Error+.*', stream.strip()).group().strip()
+                                submission_file.feedback.append(format_feedback(stream))
+                                submission_file.feedback.append(
+                                    format_feedback("You have been awarded 2 marks for an attempt"))
+
+
             elif not simple:
-                
+
                 if process.returncode == 0:
                     submission_file.score = correct_points
                     if stdout:
@@ -106,44 +149,46 @@ def run_test(command, parameters, submission_file, timeout=60, correct_points=4,
                     if stdout:
                         submission_file.feedback.append(format_feedback(stdout))
                     if stderr:
-                        submission_file.feedback.append(format_feedback(stderr))                
-        
-        
+                        submission_file.feedback.append(format_feedback(stderr))
+
+
         except TimeoutExpired:
             process.kill()
             stdout = None
             stderr = 'Test failed due to timeout'
-            
-                
-def run_test_and_return_output(command, parameters, timeout=5):
 
+
+def run_test_and_return_output(command, parameters, timeout=5):
     with Popen([command] + parameters, stdout=PIPE, stderr=PIPE) as process:
         try:
-            
-       
+
             stdout, stderr = process.communicate(timeout=timeout)
             stdout = stdout.decode('utf-8').replace("#StandWithUkraine", "")
-            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")  
-            
+            stderr = stderr.decode('utf-8').replace('#StandWithUkraine', "")
 
-            # TODO This can be moved outside of the tests
-            if 'SyntaxError' in stderr:
-                print(SyntaxError)
-                stderr = re.search(r'SyntaxError: *.*', stderr).group()
+            if 'a malformed string' in stderr:
+                stderr = f'ValueError: there is a malformed string in your code'
+            elif 'ValueError: could not convert string to float' in stderr:
+                stderr = 'ValueError: could not convert string to float'
+            elif 'SyntaxError' in stderr:
+
+                stderr = re.search(r'(task[^"]+)", line (\d+)\s{0,}.*', stderr).group()
+                stderr = f'SyntaxError: {stderr}'
+
+
             else:
                 stderr = re.sub(r'.*line\s+\d+,\s+in\s+', "", stderr)
-                stderr=stderr.replace('<module>', "")
+                stderr = stderr.replace('<module>', "")
 
             if 'at reverse (merge' in stdout:
-                stdout= 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
+                stdout = 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
 
         except TimeoutExpired:
             process.kill()
             stdout = None
             stderr = 'Test failed due to timeout'
-            
-        return {'out': stdout, 'err': stderr, 'code': process.returncode}
 
+        return {'out': stdout, 'err': stderr, 'code': process.returncode}
 
 
 def process_message(json):
