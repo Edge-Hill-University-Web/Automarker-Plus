@@ -237,3 +237,23 @@ def run_css_validator(path_to_submission_file, output_format='json', timeout=60,
             feedback = 'Validation failed due to timeout'
 
     return feedback
+
+
+def run_jest_test(command = "", parameters=[], timeout=30):
+
+    with Popen([command] + parameters, stdout=PIPE, stderr=PIPE) as process:
+        try:
+            
+            stdout, stderr = process.communicate(timeout=timeout)
+            stdout = stdout.decode('utf-8')
+            stderr = stderr.decode('utf-8')
+            process.kill()
+
+
+        except TimeoutExpired:
+            process.kill()
+            stdout = None
+            stderr = 'Test failed due to timeout'
+            
+        return {'out': stdout, 'err': stderr, 'code': process.returncode}
+
