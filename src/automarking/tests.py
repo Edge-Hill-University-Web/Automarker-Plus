@@ -35,6 +35,10 @@ def extract_code(source, start_identifier='// StartStudentCode', end_identifier=
                 except UnicodeDecodeError:
                     print('Could not decode file')
                     sourced = StringIO('')
+    
+    if isinstance(source, str):
+        source = source.splitlines(True)
+        
     for line in source:
         if state == 0 and line.strip() == start_identifier:
             state = 1
