@@ -40,7 +40,7 @@ class GradeBookFix():
     def __extract_gradebook(self):
         zip = ZipFile(self.gradebook_path)
         for archive in zip.namelist():
-            if '__MACOSX' not in archive:
+            if '__MACOSX' not in archive and zip.filename.endswith('.zip'):
                 zip.extract(archive, path=self.GB_DIR_ORIGINAL)
 
     def __create_fixed_zip(self, original_filename):
@@ -68,7 +68,7 @@ class GradeBookFix():
         destination = self.OUT_DIR + archive_name.strip('.zip')
         source = self.TEMP_DIR
         shutil.make_archive(base_name=destination, format='zip',
-                            base_dir=source, root_dir=os.getcwd())
+                            base_dir=source, root_dir=self.current_working_directory)
 
         if os.path.exists(self.TEMP_DIR):
             shutil.rmtree(self.TEMP_DIR)
@@ -111,9 +111,10 @@ class GradeBookFix():
         dup_subs = {}
         for path, subdirs, files in os.walk(self.GB_DIR_ORIGINAL):
             for name in files:
-                parts = name.split("_")
-                student = parts[1]
-                last_sub_dic[student] = name
+                if name.endswith('.zip'):
+                    parts = name.split("_")
+                    student = parts[1]
+                    last_sub_dic[student] = name
         for name in last_sub_dic.values():
             os.rename(src="{}/{}".format(self.GB_DIR_ORIGINAL, name), dst=self.OUT_DIR + name)
 
