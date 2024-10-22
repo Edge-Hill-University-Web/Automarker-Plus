@@ -70,6 +70,8 @@ def run_test(command, parameters, submission_file, timeout=60, correct_points=4,
 
             if 'at reverse (merge' in stdout:
                 stdout= 'RangeError: Maximum call stack size exceeded. Your code just keeps adding function calls to the stack\n'
+            elif 'An error occurred inside PHPUnit.' in stdout:
+                stdout= " There is an error inside your code which has caused PHP Unit to catch an error"
             
             if simple:
                 
@@ -83,34 +85,40 @@ def run_test(command, parameters, submission_file, timeout=60, correct_points=4,
                                 stdout = "PHP Unit: Test Passed"
                                 submission_file.score = correct_points
                                 submission_file.feedback.append(format_feedback(stdout)) 
-                                submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
+                                submission_file.feedback.append(format_feedback(f"You have been awarded {correct_points} marks for an attempt and for passing the unit test/s"))
+                            
                             elif 'PHP Warning' in stream:
                                 stream = stream.split(sep=',')[0]
                                 submission_file.feedback.append(format_feedback(stream)) 
+                            
                             elif 'ParseError: syntax error' in stream:
                                 submission_file.score = attempt_points
                                 submission_file.feedback.append(format_feedback("PHP Fatal error:  Uncaught ParseError: syntax error")) 
-                                submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))
+                                submission_file.feedback.append(format_feedback(f"You have been awarded {attempt_points} marks for an attempt"))
+                           
                             elif 'Call to undefined function' in stream:
                                 stream = re.search(r'Error: (.+?)\n', stream).group().strip()
                                 submission_file.score = attempt_points
                                 submission_file.feedback.append(format_feedback(f'{stream}')) 
-                                submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt")) 
+                                submission_file.feedback.append(format_feedback(f"You have been awarded {attempt_points} marks for an attempt")) 
                                 
                             elif 'because the name is already in use' in stream:
                                 stream = re.search(r'PHP Fatal error: (.+?) in (.+?) ', stream)
                                 submission_file.score = attempt_points
                                 submission_file.feedback.append(format_feedback(f'PHP Fatal error: {stream.group(1)}')) 
-                                submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt")) 
+                                submission_file.feedback.append(format_feedback(f"You have been awarded {attempt_points} marks for an attempt")) 
+                            
                             elif 'OK' not in stream:# Fail
                                 try:
                                     stream  = re.search(r'(There was \d (error|failure):)[\s\S]([\w\s]*.*){1,2}', stdout, re.MULTILINE).group().strip()
                                     stream = re.sub(r'\d\)\s{1,}question_\d{1,}::test', '', stream)
                                     submission_file.score = attempt_points
                                     submission_file.feedback.append(format_feedback(stream.replace('\n', ' ')))  
-                                    submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt")) 
+                                    submission_file.feedback.append(format_feedback(f"You have been awarded {attempt_points} marks for an attempt")) 
                                 except Exception as e:
-                                    print(f'{e}\n There was an error processing...\n {stream} \n')    
+                                    submission_file.score = attempt_points
+                                    submission_file.feedback.append(format_feedback(stream.replace('\n', ' ')))  
+                                    submission_file.feedback.append(format_feedback(f"You have been awarded {attempt_points} marks for an attempt")) 
                       
                         if submission_file.spec.identifier.endswith('.js'): # Java Script   
                                         
@@ -118,17 +126,17 @@ def run_test(command, parameters, submission_file, timeout=60, correct_points=4,
                                 stream = re.search(r'(^.*\wError:*.*)', stream, re.MULTILINE).group().strip()
                                 submission_file.score = attempt_points
                                 submission_file.feedback.append(format_feedback(stream))
-                                submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))
+                                submission_file.feedback.append(format_feedback(f"You have been awarded {attempt_points} marks for an attempt"))
                             elif '✔' in stream:
                                 stream = "Mocha: Test Passed"
                                 submission_file.score = correct_points
                                 submission_file.feedback.append(format_feedback(stream))
-                                submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt and 2 marks for passing the unit test/s"))
+                                submission_file.feedback.append(format_feedback(f"You have been awarded {correct_points} marks for an attempt and marks for passing the unit test/s"))
                             
                             elif 'Error' in stream:
                                 stream = re.search(r'.*Error+.*', stream.strip()).group().strip()
                                 submission_file.feedback.append(format_feedback(stream))
-                                submission_file.feedback.append(format_feedback("You have been awarded 2 marks for an attempt"))
+                                submission_file.feedback.append(format_feedback(f"You have been awarded {attempt_points} marks for an attempt"))
                                 
             
             elif not simple:
@@ -168,8 +176,6 @@ def run_jest_test(command = "", parameters=[], timeout=30):
             stderr = 'Test failed due to timeout'
             
         return {'out': stdout, 'err': stderr, 'code': process.returncode}
-
-
 
 def process_message(json):
     message = ""
