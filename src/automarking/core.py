@@ -9,6 +9,7 @@ specifying the files to extract, and the :class:`~automarking.core.BlackboardDat
 that loads data from the files downloaded from by Blackboard.
 
 .. moduleauthor:: Mark Hall <mark.hall@work.room3b.eu>
+.. moduleauthor:: Dan Campbell <campbeld@edgehill.ac.uk>
 """
 import os
 import re
@@ -116,6 +117,9 @@ class BlackboardDataSource(object):
                                     out_f.write(submission_file.read())
                             submissions.append(RarSubmission(studentnr, self.specs, target_filename))
                             submitted = True
+                        elif self.options == "IgnoreFileType":
+                                submissions.append(IgnoreFileType(studentnr, self.specs, target_filename))
+                                submitted = True
                         elif filename.endswith('.txt'):
                             pass
                         else:
@@ -178,6 +182,19 @@ class MissingSubmission(Submission):
         Submission.__init__(self, studentnr)
         self.feedback.append(message)
 
+class IgnoreFileType(Submission):
+
+    def __init__(self, studentnr, specs, source_filename):
+        Submission.__init__(self, studentnr)
+        try:
+            for spec in specs:
+                part = SubmissionPart(spec)
+                self.parts.append(part)
+             
+                if spec.matches(source_filename):
+                    part.add_data(source_filename, b"")
+        except Exception as e:
+            pass
 
 class TarSubmission(Submission):
 
